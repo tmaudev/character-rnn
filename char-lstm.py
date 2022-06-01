@@ -104,13 +104,28 @@ class TextRNN:
         string = ''.join(self.idx_to_char[idx] for idx in char_indices)
         return string
 
-    def train(self, seq_len, learning_rate):
+    def updateAdagrad(self, learning_rate, params):
+        for param, dparam, mem, _ in params:
+            mem += dparam * dparam
+            param += -learning_rate * dparam / np.sqrt(mem + 1e-8)
+
+    def updateAdam(self, beta1, beta2, learning_rate, params, iteration):
+        for param, dparam, mom1, mom2 in params:
+            mom1 = beta1 * mom1 + (1 - beta1) * dparam
+            mom2 = beta2 * mom2 + (1 - beta2) * dparam * dparam
+            first_unbias = mom1 / (1 - beta1 ** (iteration + 1))
+            second_unbias = mom2 / (1 - beta2 ** (iteration + 1))
+            param -= learning_rate * first_unbias / (np.sqrt(second_unbias) + 1e-8)
+
+    def train(self, seq_len, learning_rate, optimizer, beta1=0.9, beta2=0.999):
         # Starting characters for sampling
         starting_chars = [line[0] for line in self.data.split('\n') if len(line) > 0]
 
-        # Memory Variables for Adagrad Update
-        mWxh, mWhh, mWhy = np.zeros_like(self.Wxh), np.zeros_like(self.Whh), np.zeros_like(self.Why)
-        mbh, mby = np.zeros_like(self.Bh), np.zeros_like(self.By)
+        # Variables for Optimizer
+        m1Wxh, m1Whh, m1Why = np.zeros_like(self.Wxh), np.zeros_like(self.Whh), np.zeros_like(self.Why)
+        m1Bh, m1By = np.zeros_like(self.Bh), np.zeros_like(self.By)
+        m2Wxh, m2Whh, m2Why = np.zeros_like(m1Wxh), np.zeros_like(m1Whh), np.zeros_like(m1Why)
+        m2Bh, m2By = np.zeros_like(m1Bh), np.zeros_like(m1By)
 
         cur_idx = 0
         iteration = 0
@@ -132,18 +147,23 @@ class TextRNN:
                 print("---------------------------")
                 print(sample)
                 print("---------------------------")
-              
-            # Update with Adagrad
-            for param, dparam, mem in zip([self.Wxh, self.Whh, self.Why, self.Bh, self.By], 
+
+            params = zip([self.Wxh, self.Whh, self.Why, self.Bh, self.By], 
                                           [dWxh, dWhh, dWhy, dBh, dBy], 
-                                          [mWxh, mWhh, mWhy, mbh, mby]):
-                mem += dparam * dparam
-                param += -learning_rate * dparam / np.sqrt(mem + 1e-8)
+                                          [m1Wxh, m1Whh, m1Why, m1Bh, m1By],
+                                          [m2Wxh, m2Whh, m2Why, m2Bh, m2By])
+
+            if optimizer == 'adam':
+                self.updateAdam(beta1, beta2, learning_rate, params, iteration)
+            elif optimizer == 'adagrad':
+                self.updateAdagrad(learning_rate, params)
+            else:
+                assert(False)
 
             cur_idx += seq_len
             iteration += 1
 
 if __name__ == '__main__':
     rnn = TextRNN("easy.txt", 10)
-    rnn.train(25, 1e-1)
+    rnn.train(25, learning_rate=1e-1, optimizer='adagrad')
 
