@@ -386,5 +386,5 @@ if __name__ == '__main__':
     # rnn.train(25, learning_rate=1e-1, optimizer='adagrad', sample_size=5)
 
     lstm = TextLSTM("char-lstm.py")
-    lstm.train(30, learning_rate=1e-3, optimizer='adam', sample_size=50)
+    lstm.train(500, learning_rate=1e-3, optimizer='adam', sample_size=500)
 
