@@ -57,7 +57,7 @@ class TextLSTM:
 
             # Loss
             exp_y = np.exp(y[idx])
-            p[idx] = exp_y / np.sum(exp_y)
+            p[idx] = exp_y / (np.sum(exp_y) + 1e-15)
             loss += -np.log(p[idx][targets[idx]])
 
         return loss, x, h, c, p, i, f, o, g
@@ -144,7 +144,7 @@ class TextLSTM:
 
             # Loss
             exp_y = np.exp(y)
-            p = exp_y / np.sum(exp_y)
+            p = exp_y / (np.sum(exp_y) + 1e-15)
 
             idx = np.random.choice(range(self.num_chars), p=p.ravel())
             x = np.zeros((self.num_chars, 1))
@@ -259,7 +259,7 @@ class TextRNN:
             h[idx] = np.tanh(Wh + Wx + self.Bh)
             y[idx] = np.dot(self.Why, h[idx]) + self.By
             exp_y = np.exp(y[idx])
-            p[idx] = exp_y / np.sum(exp_y)
+            p[idx] = exp_y / (np.sum(exp_y) + 1e-15)
             loss += -np.log(p[idx][targets[idx]])
 
         return (loss, x, h, p)
@@ -311,7 +311,7 @@ class TextRNN:
             h = np.tanh(Wh + Wx + self.Bh)
             y = np.dot(self.Why, h) + self.By
             exp_y = np.exp(y)
-            p = exp_y / np.sum(exp_y)
+            p = exp_y / (np.sum(exp_y) + 1e-15)
 
             idx = np.random.choice(range(self.num_chars), p=p.ravel())
             x = np.zeros((self.num_chars, 1))
